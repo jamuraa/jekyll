@@ -67,14 +67,14 @@ module Jekyll
       # render and transform content (this becomes the final content of the object)
       payload["pygments_prefix"] = converter.pygments_prefix
       payload["pygments_suffix"] = converter.pygments_suffix
-      
+
+      self.transform
+
       begin
         self.content = Liquid::Template.parse(self.content).render(payload, info)
       rescue => e
         puts "Liquid Exception: #{e.message} in #{self.data["layout"]}"
       end
-      
-      self.transform
 
       # output keeps track of what will finally be written
       self.output = self.content
@@ -82,10 +82,11 @@ module Jekyll
       # recursively render layouts
       layout = layouts[self.data["layout"]]
       while layout
+        layout_content = layout.converter.convert(layout.content)
         payload = payload.deep_merge({"content" => self.output, "page" => layout.data})
 
         begin
-          self.output = Liquid::Template.parse(layout.content).render(payload, info)
+          self.output = Liquid::Template.parse(layout_content).render(payload, info)
         rescue => e
           puts "Liquid Exception: #{e.message} in #{self.data["layout"]}"
         end
