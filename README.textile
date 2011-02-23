@@ -1,3 +1,8 @@
+h1. Differences from upstream jekyll
+
+* Transformation of content / layouts is done before liquid templates are parsed.  This makes it much easier to use haml (which I use a plugin for)
+* Layouts are also converted before they are liquified.  This makes it possible to use haml (or markdown, or whatever jekyll can transform) formats for templates.
+
 h1. Jekyll
 
 By Tom Preston-Werner, Nick Quaranto, and many awesome contributors!
