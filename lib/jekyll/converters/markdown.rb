@@ -10,6 +10,15 @@ module Jekyll
       return if @setup
       # Set the Markdown interpreter (and Maruku self.config, if necessary)
       case @config['markdown']
+        when 'redcarpet'
+          begin
+            require 'redcarpet'
+            @redcarpet_extensions = @config['redcarpet']['extensions'].map { |e| e.to_sym }
+          rescue LoadError
+            STDERR.puts 'You are missing a library required for Markdown. Please run:'
+            STDERR.puts '  $ [sudo] gem install redcarpet'
+            raise FatalException.new("Missing dependency: redcarpet")
+          end
         when 'kramdown'
           begin
             require 'kramdown'
@@ -65,9 +74,10 @@ module Jekyll
       end
       @setup = true
     end
-
+    
     def matches(ext)
-      ext =~ /(markdown|mkdn?|md)/i
+      rgx = '(' + @config['markdown_ext'].gsub(',','|') +')'
+      ext =~ Regexp.new(rgx, Regexp::IGNORECASE)
     end
 
     def output_ext(ext)
@@ -77,6 +87,8 @@ module Jekyll
     def convert(content)
       setup
       case @config['markdown']
+        when 'redcarpet'
+          Redcarpet.new(content, *@redcarpet_extensions).to_html
         when 'kramdown'
           # Check for use of coderay
           if @config['kramdown']['use_coderay']
@@ -85,6 +97,7 @@ module Jekyll
               :footnote_nr   => @config['kramdown']['footnote_nr'],
               :entity_output => @config['kramdown']['entity_output'],
               :toc_levels    => @config['kramdown']['toc_levels'],
+              :smart_quotes  => @config['kramdown']['smart_quotes'],
 
               :coderay_wrap               => @config['kramdown']['coderay']['coderay_wrap'],
               :coderay_line_numbers       => @config['kramdown']['coderay']['coderay_line_numbers'],
@@ -99,11 +112,17 @@ module Jekyll
               :auto_ids      => @config['kramdown']['auto_ids'],
               :footnote_nr   => @config['kramdown']['footnote_nr'],
               :entity_output => @config['kramdown']['entity_output'],
-              :toc_levels    => @config['kramdown']['toc_levels']
+              :toc_levels    => @config['kramdown']['toc_levels'],
+              :smart_quotes  => @config['kramdown']['smart_quotes']
             }).to_html
           end
         when 'rdiscount'
-          RDiscount.new(content, *@rdiscount_extensions).to_html
+          rd = RDiscount.new(content, *@rdiscount_extensions)
+          html = rd.to_html
+          if rd.generate_toc and html.include?(@config['rdiscount']['toc_token'])
+            html.gsub!(@config['rdiscount']['toc_token'], rd.toc_content)
+          end
+          html
         when 'maruku'
           Maruku.new(content).to_html
       end
